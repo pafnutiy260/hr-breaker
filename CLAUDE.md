@@ -11,6 +11,7 @@ Tool for optimizing resumes for job postings and passing automated filters.
 3. LLM extracts content from resume and generates NEW HTML resume that:
    - Maximally fits the job posting
    - Follows guidelines: one-page PDF, no misinformation, etc.
+   - Generated in target language if specified (default: English)
 4. System runs internal filters (LLM-based ATS simulation, keyword matching, hallucination detection, etc.)
 5. If filters reject, repeat from step 3 using feedback
 6. When all checks pass, render HTML→PDF via WeasyPrint and return
@@ -97,7 +98,7 @@ uv run streamlit run src/hr_breaker/main.py
 
 # CLI
 uv run hr-breaker optimize resume.txt https://example.com/job
-uv run hr-breaker optimize resume.txt https://example.com/job -l ru # optimize, then translate to Russian
+uv run hr-breaker optimize resume.txt https://example.com/job -l ru # generate directly in Russian
 uv run hr-breaker optimize resume.txt job.txt -D              # disable debug mode (on by default)
 uv run hr-breaker optimize resume.txt job.txt --seq           # sequential filters (early exit)
 uv run hr-breaker optimize resume.txt job.txt --no-shame      # massively relax lies/hallucination/AI checks (use with caution!)
