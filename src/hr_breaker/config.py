@@ -88,7 +88,7 @@ class Settings(BaseSettings):
     keyword_max_missing_display: int = 10
 
     # Embedding settings
-    embedding_model: str = "gemini/text-embedding-004"
+    embedding_model: str = "openrouter/google/gemini-embedding-001"
     embedding_output_dimensionality: int = 768
 
     # Agent limits

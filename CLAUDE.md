@@ -135,7 +135,7 @@ Repro: `uv run python scripts/repro_vision_bug.py` (without patch) vs `uv run py
 Key model config vars (litellm format):
 - `PRO_MODEL` - Pro model (default: `gemini/gemini-3-pro-preview`)
 - `FLASH_MODEL` - Flash model (default: `gemini/gemini-3-flash-preview`)
-- `EMBEDDING_MODEL` - Embedding model (default: `gemini/text-embedding-004`)
+- `EMBEDDING_MODEL` - Embedding model (default: `openrouter/google/gemini-embedding-001`)
 - `REASONING_EFFORT` - none/low/medium/high (default: `medium`)
 - `GEMINI_API_KEY` - API key for Gemini (also accepts `GOOGLE_API_KEY` for backward compat)
 - `RETRY_MAX_ATTEMPTS` - Max retry attempts for rate limits (default: `5`)
