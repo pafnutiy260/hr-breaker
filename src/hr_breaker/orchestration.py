@@ -7,6 +7,7 @@ from contextlib import contextmanager
 
 from hr_breaker.agents import optimize_resume, parse_job_posting, translate_resume, review_translation
 from hr_breaker.config import get_settings, logger
+from hr_breaker.models.language import Language
 from hr_breaker.filters import (
     ContentLengthChecker,
     LLMChecker,
@@ -53,6 +54,7 @@ async def run_filters(
     source: ResumeSource,
     parallel: bool = False,
     no_shame: bool = False,
+    language: Language | None = None,
 ) -> ValidationResult:
     """Run filters, either sequentially (early exit) or in parallel."""
     filters = FilterRegistry.all()
@@ -61,7 +63,7 @@ async def run_filters(
         # Run all filters concurrently
         start = time.perf_counter()
         filter_instances = [filter_cls(no_shame=no_shame) for filter_cls in filters]
-        tasks = [f.evaluate(optimized, job, source) for f in filter_instances]
+        tasks = [f.evaluate(optimized, job, source, language=language) for f in filter_instances]
         raw_results = await asyncio.gather(*tasks, return_exceptions=True)
         logger.debug(f"All filters (parallel): {time.perf_counter() - start:.2f}s")
 
@@ -99,7 +101,7 @@ async def run_filters(
 
         f = filter_cls(no_shame=no_shame)
         start = time.perf_counter()
-        result = await f.evaluate(optimized, job, source)
+        result = await f.evaluate(optimized, job, source, language=language)
         logger.debug(f"{filter_cls.name}: {time.perf_counter() - start:.2f}s")
         results.append(result)
 
@@ -198,7 +200,8 @@ async def optimize_for_job(
             )
         else:
             validation = await run_filters(
-                optimized, job, source, parallel=parallel, no_shame=no_shame
+                optimized, job, source, parallel=parallel, no_shame=no_shame,
+                language=language,
             )
 
         if on_iteration:

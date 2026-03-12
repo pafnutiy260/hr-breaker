@@ -3,7 +3,7 @@
 import pytest
 from unittest.mock import AsyncMock, patch, MagicMock
 
-from hr_breaker.models import JobPosting, OptimizedResume, ResumeSource, FilterResult
+from hr_breaker.models import JobPosting, OptimizedResume, ResumeSource, FilterResult, ValidationResult
 from hr_breaker.models.language import get_language
 
 
@@ -41,3 +41,43 @@ class TestBaseFilterLanguageParam:
         f = DataValidator()
         import asyncio
         asyncio.run(f.evaluate(optimized, job, source, language=get_language("ru")))
+
+
+class TestRunFiltersLanguage:
+    """run_filters passes language to each filter."""
+
+    @pytest.mark.asyncio
+    async def test_language_passed_to_filters(self):
+        """run_filters should pass language to filter.evaluate."""
+        russian = get_language("ru")
+        source = ResumeSource(content="John Doe\nPython dev")
+        optimized = OptimizedResume(
+            html="<div>Test</div>", source_checksum=source.checksum,
+            pdf_text="Test", pdf_bytes=b"pdf",
+        )
+        job = JobPosting(
+            title="Dev", company="Co",
+            requirements=["Python"], keywords=["python"],
+        )
+
+        captured_language = []
+
+        class MockFilter:
+            name = "MockFilter"
+            priority = 1
+            threshold = 0.5
+            def __init__(self, no_shame=False):
+                pass
+            async def evaluate(self, optimized, job, source, language=None):
+                captured_language.append(language)
+                return FilterResult(
+                    filter_name="MockFilter", passed=True, score=1.0,
+                )
+
+        with patch("hr_breaker.orchestration.FilterRegistry") as mock_registry:
+            mock_registry.all.return_value = [MockFilter]
+
+            from hr_breaker.orchestration import run_filters
+            await run_filters(optimized, job, source, language=russian)
+
+            assert captured_language == [russian]
