@@ -24,7 +24,7 @@ class LLMChecker(BaseFilter):
         source: ResumeSource,
         language: Language | None = None,
     ) -> FilterResult:
-        result, _, page_count, render_warnings = await combined_review(optimized, job)
+        result, _, page_count, render_warnings = await combined_review(optimized, job, language=language)
 
         logger.debug(
             f"LLMChecker: professional={result.looks_professional}, "

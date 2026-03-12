@@ -81,3 +81,89 @@ class TestRunFiltersLanguage:
             await run_filters(optimized, job, source, language=russian)
 
             assert captured_language == [russian]
+
+
+class TestCombinedReviewerLanguage:
+    """combined_review should include language context in prompt."""
+
+    @pytest.mark.asyncio
+    async def test_russian_language_in_review_prompt(self):
+        """When language is Russian, combined_review prompt mentions it."""
+        russian = get_language("ru")
+        optimized = OptimizedResume(
+            html="<div>Тест</div>", source_checksum="abc",
+            pdf_text="Разработчик Python", pdf_bytes=b"%PDF-fake",
+        )
+        job = JobPosting(
+            title="Dev", company="Co",
+            requirements=["Python"], keywords=["python"],
+        )
+
+        with patch("hr_breaker.agents.combined_reviewer.get_combined_reviewer_agent") as mock_get, \
+             patch("hr_breaker.agents.combined_reviewer.get_renderer") as mock_renderer, \
+             patch("hr_breaker.agents.combined_reviewer.pdf_to_image") as mock_img:
+
+            mock_render_result = MagicMock()
+            mock_render_result.pdf_bytes = b"pdf"
+            mock_render_result.warnings = []
+            mock_render_result.page_count = 1
+            mock_renderer.return_value.render.return_value = mock_render_result
+            mock_img.return_value = (b"png", 1)
+
+            mock_agent = AsyncMock()
+            mock_result = MagicMock()
+            mock_result.output = MagicMock(
+                looks_professional=True, visual_issues=[], visual_feedback="",
+                keyword_score=0.8, experience_score=0.8, education_score=0.8,
+                overall_fit_score=0.8, disqualified=False, ats_issues=[],
+            )
+            mock_agent.run.return_value = mock_result
+            mock_get.return_value = mock_agent
+
+            from hr_breaker.agents.combined_reviewer import combined_review
+            await combined_review(optimized, job, language=russian)
+
+            # run() receives a list [prompt_str, BinaryContent]; extract the string
+            call_arg = mock_agent.run.call_args[0][0]
+            prompt = call_arg[0] if isinstance(call_arg, list) else call_arg
+            assert "Russian" in prompt
+
+    @pytest.mark.asyncio
+    async def test_no_language_note_when_english(self):
+        """No LANGUAGE NOTE when language is None."""
+        optimized = OptimizedResume(
+            html="<div>Test</div>", source_checksum="abc",
+            pdf_text="Test", pdf_bytes=b"%PDF-fake",
+        )
+        job = JobPosting(
+            title="Dev", company="Co",
+            requirements=["Python"], keywords=["python"],
+        )
+
+        with patch("hr_breaker.agents.combined_reviewer.get_combined_reviewer_agent") as mock_get, \
+             patch("hr_breaker.agents.combined_reviewer.get_renderer") as mock_renderer, \
+             patch("hr_breaker.agents.combined_reviewer.pdf_to_image") as mock_img:
+
+            mock_render_result = MagicMock()
+            mock_render_result.pdf_bytes = b"pdf"
+            mock_render_result.warnings = []
+            mock_render_result.page_count = 1
+            mock_renderer.return_value.render.return_value = mock_render_result
+            mock_img.return_value = (b"png", 1)
+
+            mock_agent = AsyncMock()
+            mock_result = MagicMock()
+            mock_result.output = MagicMock(
+                looks_professional=True, visual_issues=[], visual_feedback="",
+                keyword_score=0.8, experience_score=0.8, education_score=0.8,
+                overall_fit_score=0.8, disqualified=False, ats_issues=[],
+            )
+            mock_agent.run.return_value = mock_result
+            mock_get.return_value = mock_agent
+
+            from hr_breaker.agents.combined_reviewer import combined_review
+            await combined_review(optimized, job, language=None)
+
+            call_arg = mock_agent.run.call_args[0][0]
+            prompt = call_arg[0] if isinstance(call_arg, list) else call_arg
+            assert "LANGUAGE NOTE" not in prompt

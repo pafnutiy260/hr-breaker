@@ -7,6 +7,7 @@ from pydantic_ai import Agent, BinaryContent
 
 from hr_breaker.config import get_flash_model, get_model_settings
 from hr_breaker.models import JobPosting, OptimizedResume
+from hr_breaker.models.language import Language
 from hr_breaker.services.renderer import get_renderer, RenderError
 from hr_breaker.utils.retry import run_with_retry
 
@@ -171,6 +172,7 @@ def pdf_to_image(pdf_bytes: bytes) -> tuple[bytes, int]:
 async def combined_review(
     optimized: OptimizedResume,
     job: JobPosting,
+    language: Language | None = None,
 ) -> tuple[CombinedReviewResult, bytes | None, int, list[str]]:
     """Combined vision + ATS review in single LLM call.
 
@@ -261,6 +263,15 @@ Keywords: {', '.join(job.keywords)}
 See attached image.
 
 Perform BOTH visual quality check AND ATS screening. Return all fields.
+"""
+
+    if language is not None and language.code != "en":
+        prompt += f"""
+=== LANGUAGE NOTE ===
+This resume is written in {language.english_name}. This is intentional — the candidate is targeting a {language.english_name}-language job market.
+- Evaluate professional language quality IN {language.english_name} (natural phrasing, proper grammar, formal tone)
+- Technical terms (Python, Docker, AWS) must be kept in English — this is standard practice
+- Keyword matching: compare against job requirements semantically, accounting for the language difference
 """
 
     agent = get_combined_reviewer_agent()
