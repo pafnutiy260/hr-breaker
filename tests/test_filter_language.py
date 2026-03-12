@@ -167,3 +167,54 @@ class TestCombinedReviewerLanguage:
             call_arg = mock_agent.run.call_args[0][0]
             prompt = call_arg[0] if isinstance(call_arg, list) else call_arg
             assert "LANGUAGE NOTE" not in prompt
+
+
+class TestHallucinationDetectorLanguage:
+
+    @pytest.mark.asyncio
+    async def test_russian_context_in_prompt(self):
+        """detect_hallucinations should mention language when non-English."""
+        russian = get_language("ru")
+        source = ResumeSource(content="John Doe\nPython dev")
+        optimized = OptimizedResume(
+            html="<div>Разработчик</div>", source_checksum=source.checksum,
+        )
+
+        with patch("hr_breaker.agents.hallucination_detector.get_hallucination_agent") as mock_get:
+            mock_agent = AsyncMock()
+            mock_result = MagicMock()
+            mock_result.output = MagicMock(
+                no_hallucination_score=0.95, concerns=[], reasoning="Good",
+            )
+            mock_agent.run.return_value = mock_result
+            mock_get.return_value = mock_agent
+
+            from hr_breaker.agents.hallucination_detector import detect_hallucinations
+            await detect_hallucinations(optimized, source, language=russian)
+
+            prompt = mock_agent.run.call_args[0][0]
+            assert "Russian" in prompt
+            assert "LANGUAGE NOTE" in prompt
+
+    @pytest.mark.asyncio
+    async def test_no_language_note_when_none(self):
+        """No LANGUAGE NOTE when language is None."""
+        source = ResumeSource(content="John Doe\nPython dev")
+        optimized = OptimizedResume(
+            html="<div>Test</div>", source_checksum=source.checksum,
+        )
+
+        with patch("hr_breaker.agents.hallucination_detector.get_hallucination_agent") as mock_get:
+            mock_agent = AsyncMock()
+            mock_result = MagicMock()
+            mock_result.output = MagicMock(
+                no_hallucination_score=0.95, concerns=[], reasoning="Good",
+            )
+            mock_agent.run.return_value = mock_result
+            mock_get.return_value = mock_agent
+
+            from hr_breaker.agents.hallucination_detector import detect_hallucinations
+            await detect_hallucinations(optimized, source, language=None)
+
+            prompt = mock_agent.run.call_args[0][0]
+            assert "LANGUAGE NOTE" not in prompt

@@ -24,7 +24,7 @@ class HallucinationChecker(BaseFilter):
         source: ResumeSource,
         language: Language | None = None,
     ) -> FilterResult:
-        result = await detect_hallucinations(optimized, source, no_shame=self.no_shame)
+        result = await detect_hallucinations(optimized, source, no_shame=self.no_shame, language=language)
         if not self.no_shame:
             result.threshold = self.threshold
         return result
